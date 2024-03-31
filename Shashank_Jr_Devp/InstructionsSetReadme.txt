@@ -13,7 +13,10 @@
 8. Enter Request Body: In the text area provided, enter the JSON data for the signup request. 
    This typically includes information such as username, email, password, etc. Here's an example:
 9.To test the following endpoints 
-  router.POST("/posts", createPost)
+	router.POST("/auth/signup")
+	router.POST("/auth/login"")
+	router.POST("/auth/logout"
+  	router.POST("/posts", createPost)
 	router.GET("/posts", getAllPosts)
 	router.GET("/posts/:id", getPostByID)
 	router.PUT("/posts/:id", updatePost)
