@@ -20,12 +20,14 @@ type Post struct {
 	Content   string    `json:"content" bson:"content"`
 	AuthorID  string    `json:"author_id,omitempty" bson:"author_id,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
+	Role      string    `json:"role" binding:"required"`
 }
 type User struct {
 	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 	Role     string `json:"role" binding:"required"`
+	ID       string `json:"id,omitempty" bson:"_id,omitempty"`
 }
 
 var (
@@ -42,18 +44,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db = client.Database("UserBlog") // Use the "blog" database
+	db = client.Database("UserBlog")
 	collection = db.Collection("posts")
 
 	// Set up Gin router
 	router := gin.Default()
 
+	//User Signup endpoint
 	router.POST("/auth/signup", func(c *gin.Context) {
 		var user User
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		user.ID = uuid.New().String()
 
 		// Insert user data into MongoDB
 		_, err := db.Collection("users").InsertOne(context.Background(), user)
@@ -65,7 +69,34 @@ func main() {
 		c.JSON(http.StatusCreated, gin.H{"message": "User created successfully", "user": user})
 	})
 
+	//User Login End point
+
+	router.POST("/auth/login", func(c *gin.Context) {
+		var user User
+		if err := c.ShouldBindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Find the user in the database
+		var foundUser User
+		if err := db.Collection("users").FindOne(context.Background(), bson.M{"email": user.Email, "password": user.Password}).Decode(&foundUser); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Login successful", "user": foundUser})
+	})
+
+	//user logout end point
+
+	router.POST("/auth/logout", func(c *gin.Context) {
+
+		c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
+	})
+
 	// Routes
+	//	router.POST("/auth/signup", handleSignup)
+
 	router.POST("/posts", createPost)
 	router.GET("/posts", getAllPosts)
 	router.GET("/posts/:id", getPostByID)
@@ -73,7 +104,7 @@ func main() {
 	router.DELETE("/posts/:id", deletePost)
 
 	// Start server
-	if err := router.Run(":8000"); err != nil {
+	if err := router.Run(":6000"); err != nil {
 		log.Fatal(err)
 	}
 
